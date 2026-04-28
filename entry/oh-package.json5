@@ -1,0 +1,13 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "MDM企业移动管理应用",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    // MQTT客户端 - 用于与服务器长连接通信
+    "@ohos/mqtt": "5.0.0"
+  }
+}
+

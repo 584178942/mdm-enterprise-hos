@@ -1,0 +1,135 @@
+# 鸿蒙/OpenHarmony项目 - 企业MDM应用
+# 生成于 2026-04-28
+
+# ============ 依赖目录 ============
+/node_modules
+/oh_modules
+.ohpm
+ohpm/
+
+# ============ 构建产物 ============
+**/build
+**/.build
+**/*.hap
+**/*.hsp
+**/*.app
+**/*.har
+**/*.hat
+
+# Hvigor构建缓存和输出
+/.hvigor
+/hvigor
+/hvigorfile.js
+/hvigorfile.ts
+hvigor/hvigor-config.json5
+hvigor/hvigor-config.json
+.hvigor/cache
+.hvigor/dependencyMap
+.hvigor/outputs
+hvigor/node_modules
+
+# 预览和调试产物
+/.preview
+**/.preview
+
+# ============ IDE和编辑器 ============
+/.idea
+/.vscode
+/.hbuilderx
+*.iml
+*.ipr
+*.iws
+.idea/shelf/
+.vscode/extensions.json
+.vscode/settings.json
+.vscode/launch.json
+
+# 本地配置（可能包含SDK路径、签名等敏感信息）
+/local.properties
+*.properties
+.ide/
+*.ide
+
+# ============ 签名和安全文件 ============
+*.p7b
+*.cer
+*.csr
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.priv
+
+# ============ 日志和调试文件 ============
+*.log
+*.trace
+*.dmp
+*.hprof
+*.ftrace
+logs/
+
+# ============ C/C++和Native代码 ============
+.cxx
+.clangd
+.clang-format
+.clang-tidy
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.lib
+*.dll
+
+# ============ 测试产物 ============
+**/.test
+**/*.test.abc
+**/*.abc
+**/test-results
+**/coverage
+
+# ============ 沙箱和临时资源 ============
+*.sandbox
+*.uploadfailed
+
+# ============ 临时文件 ============
+*.tmp
+*.bak
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+~$*
+
+# ============ 资源缓存 ============
+**/layered_image_cache.json
+**/.cache
+**/__pycache__
+*.pyc
+
+# ============ 配置文件（按需调整） ============
+# 建议提交这些锁文件以保证构建一致性：
+# oh-package-lock.json5
+# package-lock.json
+
+# 本地开发配置（如果包含敏感信息）
+.env
+.env.local
+.env.*.local
+
+# ============ 特定于MDM项目的忽略 ============
+# 本地MDM配置（如果存在）
+**/mdm-config-local.json
+**/mdm-credentials.json
+
+# 设备特定配置
+**/device-config-*.json
+
+# 备份文件（除了业务需要的备份）
+**/backup/
+**/*.backup
+**/EntryBackupAbility/local-backup/
+MDM_TECHNICAL_DOCUMENT.md
+.history
+.claude
