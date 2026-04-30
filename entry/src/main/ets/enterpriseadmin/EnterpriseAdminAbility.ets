@@ -1,8 +1,8 @@
-import EnterpriseAdminExtensionAbility from '@kit.MDMKit'
+import { EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
-const TAG = 'EnterpriseAdminAbility'
-const DOMAIN = 0x0001
+const TAG: string = 'EnterpriseAdminAbility'
+const DOMAIN: number = 0x0001
 
 /**
  * 企业管理员扩展能力

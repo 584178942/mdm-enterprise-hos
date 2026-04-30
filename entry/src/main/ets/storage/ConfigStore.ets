@@ -1,25 +1,24 @@
-import preferences from '@ohos.data.preferences'
+// 推荐的导入方式
+import { preferences } from '@kit.ArkData';
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
-const TAG = 'ConfigStore'
-const DOMAIN = 0x0001
-const PREFERENCES_NAME = 'mdm_config'
+const TAG: string = 'ConfigStore'
+const DOMAIN: number = 0x0001
+const PREFERENCES_NAME: string = 'mdm_config'
 
-// 模块级变量
 let prefInstance: preferences.Preferences | null = null
 let contextInstance: Context | null = null
 
-// 配置键名
-const KEY_DEVICE_ID = 'device_id'
-const KEY_MQTT_SERVER_URI = 'mqtt_server_uri'
-const KEY_MQTT_USERNAME = 'mqtt_username'
-const KEY_MQTT_PASSWORD = 'mqtt_password'
-const KEY_MQTT_CLIENT_ID = 'mqtt_client_id'
-const KEY_HEARTBEAT_INTERVAL = 'heartbeat_interval'
-const KEY_LAST_HEARTBEAT_TIME = 'last_heartbeat_time'
-const KEY_ADMIN_ACTIVATED = 'admin_activated'
-const KEY_LAST_SYNC_TIME = 'last_sync_time'
-const KEY_USE_MOCK_MODE = 'use_mock_mode'
+const KEY_DEVICE_ID: string = 'device_id'
+const KEY_MQTT_SERVER_URI: string = 'mqtt_server_uri'
+const KEY_MQTT_USERNAME: string = 'mqtt_username'
+const KEY_MQTT_PASSWORD: string = 'mqtt_password'
+const KEY_MQTT_CLIENT_ID: string = 'mqtt_client_id'
+const KEY_HEARTBEAT_INTERVAL: string = 'heartbeat_interval'
+const KEY_LAST_HEARTBEAT_TIME: string = 'last_heartbeat_time'
+const KEY_ADMIN_ACTIVATED: string = 'admin_activated'
+const KEY_LAST_SYNC_TIME: string = 'last_sync_time'
+const KEY_USE_MOCK_MODE: string = 'use_mock_mode'
 
 /**
  * 配置存储管理器

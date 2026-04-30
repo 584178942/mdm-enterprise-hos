@@ -1,20 +1,15 @@
-import backgroundTaskManager from '@ohos.ability.backgroundTaskManager'
-import { BusinessError } from '@ohos.base'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { MqttClientManager, MqttConnectionState } from '../mqtt/MqttClient'
 import { CommandHandler } from '../command/CommandHandler'
 import { CommandMessage } from '../command/CommandParser'
 import { HeartbeatAdjuster } from '../battery/HeartbeatAdjuster'
 import { ConfigStore } from '../storage/ConfigStore'
+import { backgroundTaskManager } from '@kit.BackgroundTasksKit'
 
-const TAG = 'MqttBackgroundService'
-const DOMAIN = 0x0001
-const BACKGROUND_TASK_ID = 10001
+const TAG: string = 'MqttBackgroundService'
+const DOMAIN: number = 0x0001
+const BACKGROUND_TASK_ID: number = 10001
 
-/**
- * MQTT后台服务
- * 负责维护MQTT长连接、处理命令、心跳等后台任务
- */
 export class MqttBackgroundService {
   private mqttClient: MqttClientManager | null = null
   private commandHandler: CommandHandler
@@ -28,10 +23,6 @@ export class MqttBackgroundService {
     this.heartbeatAdjuster = new HeartbeatAdjuster()
   }
 
-  /**
-   * 启动后台服务
-   * @param context 应用上下文
-   */
   async start(context: Context): Promise<void> {
     if (this.isRunning) {
       hilog.warn(DOMAIN, TAG, 'Service already running')
@@ -41,44 +32,32 @@ export class MqttBackgroundService {
     hilog.info(DOMAIN, TAG, 'Starting MQTT background service')
 
     try {
-      // 初始化配置存储
       await ConfigStore.init(context)
 
-      // 初始化MQTT客户端
-      const deviceId = await ConfigStore.getDeviceId()
+      const deviceId: string = await ConfigStore.getDeviceId()
       this.mqttClient = new MqttClientManager()
       this.mqttClient.initialize(deviceId)
 
-      // 设置连接状态监听
-      this.mqttClient.addConnectionListener((state) => {
+      this.mqttClient.addConnectionListener((state: MqttConnectionState) => {
         this.onConnectionStateChanged(state)
       })
 
-      // 设置消息监听
-      this.mqttClient.addMessageListener((topic, payload) => {
+      this.mqttClient.addMessageListener((topic: string, payload: string) => {
         this.onMessageReceived(topic, payload)
       })
 
-      // 申请后台任务
       this.requestBackgroundTask()
-
-      // 启动心跳
       this.startHeartbeat()
-
-      // 连接MQTT服务器
       this.mqttClient.connect()
 
       this.isRunning = true
       hilog.info(DOMAIN, TAG, 'MQTT background service started')
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to start service: %{public}s', JSON.stringify(err))
-      throw
+      const error = err as Error
+      hilog.error(DOMAIN, TAG, 'Failed to start service: %{public}s', error.message)
     }
   }
 
-  /**
-   * 停止后台服务
-   */
   stop(): void {
     if (!this.isRunning) {
       return
@@ -86,67 +65,50 @@ export class MqttBackgroundService {
 
     hilog.info(DOMAIN, TAG, 'Stopping MQTT background service')
 
-    // 停止心跳
     this.stopHeartbeat()
 
-    // 断开MQTT连接
     if (this.mqttClient) {
       this.mqttClient.disconnect()
       this.mqttClient.release()
       this.mqttClient = null
     }
 
-    // 取消后台任务
     this.cancelBackgroundTask()
 
     this.isRunning = false
     hilog.info(DOMAIN, TAG, 'MQTT background service stopped')
   }
 
-  /**
-   * 申请后台任务
-   */
   private requestBackgroundTask(): void {
     try {
-      this.backgroundTaskId = backgroundTaskManager.requestBackgroundRunningprivilege(
-        (err: BusinessError) => {
-          if (err) {
-            hilog.error(DOMAIN, TAG, 'Request background task failed: %{public}s', err.message)
-          } else {
-            hilog.info(DOMAIN, TAG, 'Background task granted')
-          }
-        }
-      )
-      hilog.info(DOMAIN, TAG, 'Background task ID: %{public}d', this.backgroundTaskId)
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Request background task error: %{public}s', JSON.stringify(err))
-    }
-  }
-
-  /**
-   * 取消后台任务
-   */
-  private cancelBackgroundTask(): void {
-    if (this.backgroundTaskId !== 0) {
-      try {
-        backgroundTaskManager.cancelBackgroundRunningprivilege(this.backgroundTaskId)
-        hilog.info(DOMAIN, TAG, 'Background task cancelled')
-      } catch (err) {
-        hilog.error(DOMAIN, TAG, 'Cancel background task error: %{public}s', JSON.stringify(err))
+      const isAllowed: boolean = backgroundTaskManager.requestBackgroundRunning()
+      if (isAllowed) {
+        hilog.info(DOMAIN, TAG, 'Background task granted')
+      } else {
+        hilog.warn(DOMAIN, TAG, 'Background task not allowed')
       }
+    } catch (err) {
+      const error = err as Error
+      hilog.error(DOMAIN, TAG, 'Request background task error: %{public}s', error.message)
     }
   }
 
-  /**
-   * 连接状态变化处理
-   */
+  private cancelBackgroundTask(): void {
+    try {
+      backgroundTaskManager.cancelBackgroundRunning()
+      hilog.info(DOMAIN, TAG, 'Background task cancelled')
+    } catch (err) {
+      const error = err as Error
+      hilog.error(DOMAIN, TAG, 'Cancel background task error: %{public}s', error.message)
+    }
+  }
+
   private onConnectionStateChanged(state: MqttConnectionState): void {
     hilog.info(DOMAIN, TAG, 'Connection state changed: %{public}s', state)
 
     switch (state) {
       case MqttConnectionState.CONNECTED:
         hilog.info(DOMAIN, TAG, 'MQTT connected successfully')
-        // 保存最后心跳时间
         ConfigStore.saveLastHeartbeatTime(Date.now())
         break
       case MqttConnectionState.DISCONNECTED:
@@ -161,41 +123,33 @@ export class MqttBackgroundService {
     }
   }
 
-  /**
-   * 收到消息处理
-   */
   private async onMessageReceived(topic: string, payload: string): Promise<void> {
     hilog.info(DOMAIN, TAG, 'Message received on topic: %{public}s', topic)
 
     try {
-      // 解析命令
-      const cmd = CommandMessage.fromJson(payload)
+      const cmd: CommandMessage | null = CommandMessage.fromJson(payload)
       if (!cmd) {
         hilog.error(DOMAIN, TAG, 'Failed to parse command message')
         return
       }
 
-      // 处理命令
       const result = await this.commandHandler.handle(cmd)
 
-      // 上报命令结果
       if (this.mqttClient) {
         this.mqttClient.publishCommandResult(
           result.commandId,
           result.action,
           result.success,
           result.message,
-          result.data
+          result.data as Record<string, Object>
         )
       }
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Error handling message: %{public}s', JSON.stringify(err))
+      const error = err as Error
+      hilog.error(DOMAIN, TAG, 'Error handling message: %{public}s', error.message)
     }
   }
 
-  /**
-   * 启动心跳
-   */
   private startHeartbeat(): void {
     if (this.heartbeatTimer !== null) {
       return
@@ -203,9 +157,8 @@ export class MqttBackgroundService {
 
     hilog.info(DOMAIN, TAG, 'Starting heartbeat')
 
-    const sendHeartbeat = () => {
+    const sendHeartbeat = (): void => {
       if (this.mqttClient && this.mqttClient.isConnected()) {
-        const msg = this.heartbeatAdjuster.buildHeartbeatMsg(this.mqttClient.getDeviceId())
         this.mqttClient.publishHeartbeat(
           this.heartbeatAdjuster.getBatteryInfo().batterySOC,
           this.heartbeatAdjuster.getBatteryInfo().isCharging,
@@ -215,18 +168,13 @@ export class MqttBackgroundService {
         hilog.info(DOMAIN, TAG, 'Heartbeat sent')
       }
 
-      // 计划下一次心跳
-      const interval = this.heartbeatAdjuster.getIntervalMs()
+      const interval: number = this.heartbeatAdjuster.getIntervalMs()
       this.heartbeatTimer = setTimeout(sendHeartbeat, interval)
     }
 
-    // 立即发送第一次心跳
     sendHeartbeat()
   }
 
-  /**
-   * 停止心跳
-   */
   private stopHeartbeat(): void {
     if (this.heartbeatTimer !== null) {
       clearTimeout(this.heartbeatTimer)
@@ -235,34 +183,21 @@ export class MqttBackgroundService {
     }
   }
 
-  /**
-   * 获取服务运行状态
-   */
   isServiceRunning(): boolean {
     return this.isRunning
   }
 
-  /**
-   * 获取MQTT连接状态
-   */
   getConnectionState(): MqttConnectionState | null {
     return this.mqttClient?.getConnectionState() || null
   }
 
-  /**
-   * 获取心跳调整器
-   */
   getHeartbeatAdjuster(): HeartbeatAdjuster {
     return this.heartbeatAdjuster
   }
 }
 
-// 单例实例
 let serviceInstance: MqttBackgroundService | null = null
 
-/**
- * 获取后台服务单例
- */
 export function getMqttBackgroundService(): MqttBackgroundService {
   if (!serviceInstance) {
     serviceInstance = new MqttBackgroundService()

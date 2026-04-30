@@ -11,6 +11,30 @@
     {
       "name": "EntryAbility_label",
       "value": "label"
+    },
+    {
+      "name": "permission_mdm_reason",
+      "value": "Need MDM permission to manage device"
+    },
+    {
+      "name": "permission_internet_reason",
+      "value": "Need internet permission to connect to server"
+    },
+    {
+      "name": "permission_network_reason",
+      "value": "Need network permission to monitor network status"
+    },
+    {
+      "name": "permission_battery_reason",
+      "value": "Need battery permission to monitor battery status"
+    },
+    {
+      "name": "permission_screen_reason",
+      "value": "Need screen info permission to monitor screen status"
+    },
+    {
+      "name": "permission_reboot_reason",
+      "value": "Need reboot permission to restart device"
     }
   ]
 }

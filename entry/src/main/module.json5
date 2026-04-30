@@ -44,6 +44,22 @@
         }
       },
       {
+        "name": "ohos.permission.BATTERY_STATS",
+        "reason": "$string:permission_battery_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.READ_SCREEN_INFO",
+        "reason": "$string:permission_screen_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "always"
+        }
+      },
+      {
         "name": "ohos.permission.REBOOT",
         "reason": "$string:permission_reboot_reason",
         "usedScene": {
