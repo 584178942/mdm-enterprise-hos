@@ -146,7 +146,7 @@ struct Index {
             .fontColor('#007AFF')
             .padding({ left: 16, right: 16, top: 8, bottom: 8 })
             .onClick(() => {
-              router.push({ uri: 'pages/Settings' })
+              router.pushUrl({ url: 'pages/Settings' })
             })
         }
         .width('100%')

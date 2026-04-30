@@ -1,11 +1,10 @@
 import { CommandMessage } from './CommandParser'
-import { CommandResult } from './CommandResult'
+import { CommandResult , AppListData, AppInfo ,DeviceInfoData, DeviceInfoDetail} from './CommandResult'
 import { MdmApiFactory } from '../mdm/MdmApiFactory'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const TAG = 'CommandHandler'
 const DOMAIN = 0x0001
-
 /**
  * 命令处理器
  * 负责解析MQTT消息并分发到对应的MDM模块执行
@@ -173,8 +172,14 @@ export class CommandHandler {
   }
 
   private async handleGetAppList(cmd: CommandMessage): Promise<CommandResult> {
-    const res = await this.appMgr.getAppList()
-    return new CommandResult(cmd.commandId, cmd.action, res.success, res.message, { apps: res.apps })
+    const res = await this.appMgr.getAppList();
+    let data: AppListData | null = null;
+    if (res.apps && Array.isArray(res.apps)) {
+      // 确保 apps 数组元素符合 AppInfo 结构
+      const apps: AppInfo[] = res.apps
+      data = { apps };
+    }
+    return new CommandResult(cmd.commandId, cmd.action, res.success, res.message, data);
   }
 
   // 限制策略处理
@@ -222,9 +227,12 @@ export class CommandHandler {
   }
 
   // 信息查询处理
-
   private async handleGetDeviceInfo(cmd: CommandMessage): Promise<CommandResult> {
-    const res = await this.infoQuerier.getDeviceInfo()
-    return new CommandResult(cmd.commandId, cmd.action, res.success, res.message, res.data ? { info: res.data } : null)
+    const res = await this.infoQuerier.getDeviceInfo();
+    let data: DeviceInfoData | null = null;
+    if (res.data) {
+      data = { info: res.data as DeviceInfoDetail };
+    }
+    return new CommandResult(cmd.commandId, cmd.action, res.success, res.message, data);
   }
 }

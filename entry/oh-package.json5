@@ -7,7 +7,7 @@
   "license": "",
   "dependencies": {
     // MQTT客户端 - 用于与服务器长连接通信
-    "@ohos/mqtt": "5.0.0"
+    "@ohos/mqtt": "2.0.18"
   }
 }
 

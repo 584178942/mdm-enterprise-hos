@@ -1,12 +1,9 @@
-import connection from '@ohos.net.connection'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import connection from '@ohos.net.connection';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
-const TAG = 'NetworkMonitor'
-const DOMAIN = 0x0001
+const TAG = 'NetworkMonitor';
+const DOMAIN = 0x0001;
 
-/**
- * 网络类型
- */
 export enum NetworkType {
   WIFI = 'WiFi',
   CELLULAR = 'Cellular',
@@ -15,139 +12,124 @@ export enum NetworkType {
   UNKNOWN = 'Unknown'
 }
 
-/**
- * 网络状态信息
- */
 export interface NetworkInfo {
-  isAvailable: boolean       // 网络是否可用
-  networkType: NetworkType   // 网络类型
-  isMetered: boolean         // 是否按流量计费
+  isAvailable: boolean;
+  networkType: NetworkType;
+  isMetered: boolean;
 }
 
-/**
- * 网络状态监听器
- */
-export type NetworkChangeListener = (info: NetworkInfo) => void
+export type NetworkChangeListener = (info: NetworkInfo) => void;
 
-/**
- * 网络监控器
- * 监听网络状态变化
- */
 export class NetworkMonitor {
-  private listeners: NetworkChangeListener[] = []
-  private lastInfo: NetworkInfo | null = null
+  private listeners: NetworkChangeListener[] = [];
+  private lastInfo: NetworkInfo | null = null;
+  private netConnection: connection.NetConnection | null = null;
 
-  /**
-   * 获取当前网络信息
-   */
   getInfo(): NetworkInfo {
     try {
-      const netHandle = connection.getDefaultNetSync()
-      const isAvailable = netHandle !== null
+      const netHandle = connection.getDefaultNetSync();
+      const isAvailable = netHandle !== null;
 
       if (!isAvailable) {
-        return {
+        const noNetworkInfo: NetworkInfo = {
           isAvailable: false,
           networkType: NetworkType.NONE,
           isMetered: false
-        }
+        };
+        return noNetworkInfo;
       }
 
-      // 获取网络类型
-      const netCapability = connection.getNetCapabilitiesSync(netHandle)
-      let networkType = NetworkType.UNKNOWN
+      const netCap = connection.getNetCapabilitiesSync(netHandle);
+      let networkType: NetworkType = NetworkType.UNKNOWN;
+      const bearerTypes = netCap.bearerTypes;
 
-      if (netCapability.netCapabilities.includes(connection.NetCap.NET_CAPABILITY_WIFI)) {
-        networkType = NetworkType.WIFI
-      } else if (netCapability.netCapabilities.includes(connection.NetCap.NET_CAPABILITY_MOBILE)) {
-        networkType = NetworkType.CELLULAR
-      } else if (netCapability.netCapabilities.includes(connection.NetCap.NET_CAPABILITY_ETHERNET)) {
-        networkType = NetworkType.ETHERNET
+      if (bearerTypes.includes(connection.NetBearType.BEARER_ETHERNET)) {
+        networkType = NetworkType.ETHERNET;
+      } else if (bearerTypes.includes(connection.NetBearType.BEARER_WIFI)) {
+        networkType = NetworkType.WIFI;
+      } else if (bearerTypes.includes(connection.NetBearType.BEARER_CELLULAR)) {
+        networkType = NetworkType.CELLULAR;
       }
+
+      // 判断是否按流量计费：如果是蜂窝网络则视为计费，否则非计费
+      const isMetered = (networkType === NetworkType.CELLULAR);
 
       const info: NetworkInfo = {
         isAvailable: true,
         networkType: networkType,
-        isMetered: netCapability.isMetered || false
-      }
+        isMetered: isMetered
+      };
 
-      this.lastInfo = info
-      return info
+      this.lastInfo = info;
+      return info;
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to get network info: %{public}s', JSON.stringify(err))
-      return {
+      hilog.error(DOMAIN, TAG, 'Failed to get network info: %{public}s', String(err));
+      const errorInfo: NetworkInfo = {
         isAvailable: false,
         networkType: NetworkType.NONE,
         isMetered: false
-      }
+      };
+      return errorInfo;
     }
   }
 
-  /**
-   * 检查网络是否可用
-   */
   isNetworkAvailable(): boolean {
-    return this.getInfo().isAvailable
+    return this.getInfo().isAvailable;
   }
 
-  /**
-   * 监听网络状态变化
-   * @param listener 监听回调
-   */
   onChange(listener: NetworkChangeListener): void {
-    this.listeners.push(listener)
+    this.listeners.push(listener);
+    const info = this.getInfo();
+    listener(info);
 
-    // 立即通知当前状态
-    const info = this.getInfo()
-    listener(info)
+    // 如果已经有 netConnection 则不再重复注册
+    if (this.netConnection !== null) {
+      return;
+    }
 
-    // 注册网络状态变化回调
     try {
-      connection.on('netAvailable', () => {
-        hilog.info(DOMAIN, TAG, 'Network available changed')
-        this.notifyListeners()
-      })
-
-      connection.on('netUnavailable', () => {
-        hilog.info(DOMAIN, TAG, 'Network unavailable')
-        this.notifyListeners()
-      })
+      this.netConnection = connection.createNetConnection();
+      // 注册网络可用监听（需要传入回调）
+      this.netConnection.on('netAvailable', () => {
+        hilog.info(DOMAIN, TAG, 'Network available');
+        this.notifyListeners();
+      });
+      this.netConnection.on('netUnavailable', () => {
+        hilog.info(DOMAIN, TAG, 'Network unavailable');
+        this.notifyListeners();
+      });
+      // register 方法需要传入一个回调（可选，但为了满足参数要求传空函数）
+      this.netConnection.register(() => {});
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to register network listener: %{public}s', JSON.stringify(err))
+      hilog.error(DOMAIN, TAG, 'Failed to register network listener: %{public}s', String(err));
     }
   }
 
-  /**
-   * 取消所有监听
-   */
   off(): void {
     try {
-      connection.off('netAvailable')
-      connection.off('netUnavailable')
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to unregister network listener: %{public}s', JSON.stringify(err))
-    }
-    this.listeners = []
-  }
-
-  /**
-   * 通知所有监听器
-   */
-  private notifyListeners(): void {
-    const info = this.getInfo()
-    this.listeners.forEach(listener => {
-      try {
-        listener(info)
-      } catch (err) {
-        hilog.error(DOMAIN, TAG, 'Network listener error: %{public}s', JSON.stringify(err))
+      if (this.netConnection) {
+        // 注意：NetConnection 没有 off 方法，只需 unregister 即可
+        this.netConnection.unregister(() => {});
+        this.netConnection = null;
       }
-    })
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'Failed to unregister network listener: %{public}s', String(err));
+    }
+    this.listeners = [];
   }
 
-  /**
-   * 获取上一次获取的信息
-   */
+  private notifyListeners(): void {
+    const info = this.getInfo();
+    this.listeners.forEach((listener: NetworkChangeListener) => {
+      try {
+        listener(info);
+      } catch (err) {
+        hilog.error(DOMAIN, TAG, 'Network listener error: %{public}s', String(err));
+      }
+    });
+  }
+
   getLastInfo(): NetworkInfo | null {
-    return this.lastInfo
+    return this.lastInfo;
   }
 }
